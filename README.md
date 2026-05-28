@@ -24,8 +24,9 @@ suite. File-based tooling then consumes the mirror as ordinary files.
 export IRISSYNC_BASE_URL=https://host:52773/api/atelier/v1/
 export IRISSYNC_NAMESPACE=VISTA
 export IRISSYNC_INSTANCE=vehu-dev
+export IRISSYNC_TYPE=int       # VistA routines are .int (^%RI-loaded); see "Routine type" below
 irissync list                 # connectivity + inventory (no writes)
-irissync pull                 # DB → .mac mirror + manifest (incremental)
+irissync pull                 # DB → .int mirror + manifest (incremental)
 irissync status               # server vs. local manifest drift (exit 3 on drift)
 irissync verify               # re-hash the mirror against the manifest
 ```
