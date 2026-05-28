@@ -38,17 +38,20 @@ irissync verify               # re-hash the mirror against the manifest
 | Command | What it does | Writes? |
 |---------|--------------|:-------:|
 | `list` | Print server routine docnames. Connectivity/auth smoke test + inventory. | no |
-| `pull` | Materialize IRIS routine source → `.mac` mirror, incremental via the manifest. | yes |
+| `pull` | Materialize IRIS routine source → mirror, incremental via the manifest. | local mirror only |
 | `status` | Diff server vs. local manifest: `new` / `changed` / `deleted` / `unchanged`. | no |
 | `verify` | Re-hash mirror files against the manifest. Integrity gate for CI. | no |
 | `version` | Print version + Go toolchain (the pinned/mirrored audit trail). | no |
 | `schema` | Emit the command/flag tree as JSON (agent discovery). | no |
+| `install-completions` | Install shell tab-completions (bash/zsh/fish). | no |
 
 ## Configuration — flags and env
 
-Config comes from **flags or `IRISSYNC_*` env** (flags win); `irissync` does not
-read `.m-cli.toml` (that stays `m-cli`'s job, which passes resolved values down —
-[design §4](../vista-dev-bridge/docs/liberation-binary-design.md)).
+Config comes from **flags or `IRISSYNC_*` env** (flags win), with secrets
+optionally read from files — so `irissync` is self-sufficient and needs no config
+file of its own. It does not parse `.m-cli.toml`; an orchestrator like `m-cli`
+*may* resolve per-instance profiles and pass values down, but that is optional,
+never required ([design §4](../vista-dev-bridge/docs/liberation-binary-design.md)).
 
 | Flag | Env | Default | Meaning |
 |------|-----|---------|---------|
@@ -75,8 +78,8 @@ read `.m-cli.toml` (that stays `m-cli`'s job, which passes resolved values down 
 
 ## Enterprise & multi-instance auth
 
-`irissync` is a **standalone, portable binary** — it round-trips routines out of
-an IRIS system on its own, configured entirely by flags + `IRISSYNC_*` env (with
+`irissync` is a **standalone, portable binary** — it liberates routines from an
+IRIS system on its own, configured entirely by flags + `IRISSYNC_*` env (with
 secrets sourced from files). It never depends on `m-cli`; an orchestrator like
 `m-cli` is an *optional* convenience for resolving per-instance profiles, not a
 requirement.
@@ -100,8 +103,8 @@ that holds up:
   matches the in-boundary TLS posture.
 - **Least-privilege identity per environment.** Whichever app auth you use, scope
   it to a dedicated read identity (Atelier app role + read on the routine DB) —
-  not `_SYSTEM`, not your own superuser login. On **pre-prod**, scope it
-  **read-only** (`pull` from pre-prod; `push` only to dev).
+  not `_SYSTEM`, not your own superuser login. A **read-only** identity is all
+  `irissync` ever needs, which makes it a natural fit for **pre-prod**.
 - **Secrets by file, not argv/env.** Prefer `--token-file` / `--password-file`:
   the secret never appears in a process listing or the environment. App auth
   (token or basic) layers on top of the optional mTLS transport — set both. A
@@ -167,7 +170,7 @@ also the conflict-check basis for the future `push`). One entry per routine:
   "namespace": "VISTA",
   "pulledAt": "2026-05-27T00:00:00Z",
   "routines": {
-    "DGREG.mac": { "serverTS": "2026-05-20 09:14:22.000", "sha256": "…", "bytes": 4821 }
+    "DGREG.int": { "serverTS": "2026-05-20 09:14:22.000", "sha256": "…", "bytes": 4821 }
   }
 }
 ```
@@ -182,8 +185,9 @@ On a VistA loaded into IRIS via `^%RI`, the routine **source** is stored as
 `liberation-binary-design.md` is correct for ObjectScript (where `.int` is
 compiler output) but not for `^%RI`-loaded VistA, where `.int` *is* the source.
 Use `--type int` for such instances (default stays `mac`). Validated 2026-05-27
-against a live IRIS-for-Health VistA: `pull --type int --filter 'DG*'`
-materialized 1,484 routines (6.2 MB) in ~3.5 s; `status`/`verify` clean.
+against a live IRIS-for-Health VistA: a full `pull --type int` materialized all
+**34,023** routines (140.8 MB) in ~51 s (and a `DG*` subset, 1,484 routines, in
+~3.5 s); `status` and `verify` both clean.
 
 ### Repair semantics
 
@@ -194,9 +198,10 @@ detects it (exit 3) and `pull --full` repairs it.
 
 ## Output contract and exit codes
 
-Every command speaks the shared `clikit` contract: `--output text|json|auto`
-(styled text on a TTY, the JSON envelope when piped) and a deterministic
-exit-code ladder.
+Every command speaks the shared `clikit` contract: `--output`/`-o`
+`text|json|auto` (default `auto` — styled text on a TTY, the JSON envelope when
+piped), plus `--no-color` and `--verbose`/`-v`, and a deterministic exit-code
+ladder.
 
 | Exit | Meaning |
 |------|---------|
@@ -232,7 +237,7 @@ main.go ──► Kong grammar (clikit.Globals + config.Conn)
    internal/atelier  Atelier REST v1 client (net/http + crypto/tls + crypto/x509)
                        docnames → []DocName · doc → source line array
    internal/manifest  load/save .irissync-manifest.json · server⇄mirror diff
-   internal/mirror    atomic .mac writer (EOL normalize, UDL-only guard) · re-hash
+   internal/mirror    atomic routine writer (EOL normalize, UDL-only guard) · re-hash
 ```
 
 ## Dependency note (zero-`require` SBOM)
