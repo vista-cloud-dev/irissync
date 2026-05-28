@@ -14,9 +14,9 @@ suite. File-based tooling then consumes the mirror as ordinary files.
 > **Scope:** this is the **read / liberation** half — `list`, `pull`, `status`,
 > `verify`. Write-back (`push`) is intentionally **not** part of this tool today;
 > it is a separate, future component (design:
-> [`liberation-binary-design.md`](../vista-dev-bridge/docs/liberation-binary-design.md);
+> [`liberation-binary-design.md`](https://github.com/vista-cloud-dev/vista-dev-bridge/blob/main/docs/liberation-binary-design.md);
 > tracked as stage 2.1 of the
-> [m-cli Go toolchain plan](../vista-dev-bridge/docs/m-cli-go-toolchain-implementation-plan.md)).
+> [m-cli Go toolchain plan](https://github.com/vista-cloud-dev/vista-dev-bridge/blob/main/docs/m-cli-go-toolchain-implementation-plan.md)).
 > Keeping this binary read-only is the point: it's the "safe" tool you can run
 > against dev/test/pre-prod systems with zero risk to the source.
 
@@ -51,7 +51,7 @@ Config comes from **flags or `IRISSYNC_*` env** (flags win), with secrets
 optionally read from files — so `irissync` is self-sufficient and needs no config
 file of its own. It does not parse `.m-cli.toml`; an orchestrator like `m-cli`
 *may* resolve per-instance profiles and pass values down, but that is optional,
-never required ([design §4](../vista-dev-bridge/docs/liberation-binary-design.md)).
+never required ([design §4](https://github.com/vista-cloud-dev/vista-dev-bridge/blob/main/docs/liberation-binary-design.md)).
 
 | Flag | Env | Default | Meaning |
 |------|-----|---------|---------|
@@ -150,7 +150,7 @@ tree is git-stable and `tree-sitter-m`-parseable. Source is fetched as **plain
 UDL/Atelier text** — the XML `$SYSTEM.OBJ.Export` wrapper is refused; `.cls`
 (ObjectScript classes) is out of scope.
 
-> **Layout note:** [design §2.1](../vista-dev-bridge/docs/liberation-binary-design.md)
+> **Layout note:** [design §2.1](https://github.com/vista-cloud-dev/vista-dev-bridge/blob/main/docs/liberation-binary-design.md)
 > illustrates an extra `<package>` path segment. Deriving a VistA package from a
 > bare routine name needs the package-prefix map (a `vista-meta` domain concern
 > the read gate doesn't have), so routines are written **flat** under the
@@ -242,7 +242,7 @@ main.go ──► Kong grammar (clikit.Globals + config.Conn)
 
 ## Dependency note (zero-`require` SBOM)
 
-[`liberation-binary-design.md`](../vista-dev-bridge/docs/liberation-binary-design.md)
+[`liberation-binary-design.md`](https://github.com/vista-cloud-dev/vista-dev-bridge/blob/main/docs/liberation-binary-design.md)
 calls for `irissync` to be **zero-`require`** (Go stdlib only) so its SBOM
 reduces to "Go stdlib at toolchain version *X*" — *the absence of `require`
 lines is the attested artifact.* This repo was instead scaffolded from
