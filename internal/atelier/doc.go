@@ -52,6 +52,15 @@ type putBody struct {
 // validated until then) — see liberation-binary-design §5.
 func (c *Client) PutDoc(ctx context.Context, name string, content []string) (*PutResult, error) {
 	u := c.endpoint(c.namespace, "doc", name)
+	// Atelier PUT enforces optimistic concurrency: without the last-seen
+	// timestamp it returns HTTP 409 for any existing doc. push has already run
+	// its own conflict-check (re-read the live ts vs the manifest) before
+	// reaching here, so Atelier's redundant check is what 409s — ignoreConflict
+	// tells the server "I've verified; proceed." The safety guard is push's
+	// conflict-check + the single-writer lock, not Atelier's check. (Stricter
+	// follow-up: thread the verified ts into the PUT to also close Atelier's
+	// own TOCTOU window.)
+	u.RawQuery = "ignoreConflict=1"
 	payload, err := json.Marshal(putBody{Enc: false, Content: content})
 	if err != nil {
 		return nil, fmt.Errorf("atelier: encode doc %q: %w", name, err)

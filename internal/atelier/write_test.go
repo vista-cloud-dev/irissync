@@ -11,10 +11,11 @@ import (
 )
 
 func TestPutDoc(t *testing.T) {
-	var gotMethod, gotPath, gotCT string
+	var gotMethod, gotPath, gotCT, gotQuery string
 	var gotBody []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotMethod, gotPath, gotCT = r.Method, r.URL.Path, r.Header.Get("Content-Type")
+		gotQuery = r.URL.RawQuery
 		gotBody, _ = io.ReadAll(r.Body)
 		w.Header().Set("Content-Type", "application/json")
 		// Atelier echoes the stored doc (with the new server timestamp) in result.
@@ -33,6 +34,12 @@ func TestPutDoc(t *testing.T) {
 	}
 	if gotPath != "/api/atelier/v1/VISTA/doc/DGREG.mac" {
 		t.Errorf("path = %q", gotPath)
+	}
+	// Atelier PUT 409s on an existing doc without the optimistic-concurrency
+	// token; push does its own conflict-check, so it sends ignoreConflict=1
+	// (regression guard for the live HTTP-409 found against vista-iris).
+	if !strings.Contains(gotQuery, "ignoreConflict=1") {
+		t.Errorf("PUT query = %q, want ignoreConflict=1", gotQuery)
 	}
 	if !strings.Contains(gotCT, "application/json") {
 		t.Errorf("content-type = %q", gotCT)
